@@ -122,7 +122,7 @@ function attemptToBuyProducer(data, producerId) {
 		producer.qty += 1;
 		data.coffee -= producer.price;
 		producer.price = updatePrice(producer.price);
-		data.totalCPS = producer.cps;
+		data.totalCPS += producer.cps;
 		return true;
 	} else {
 		return false;
@@ -130,16 +130,30 @@ function attemptToBuyProducer(data, producerId) {
 }
 
 function buyButtonClick(event, data) {
-	renderProducers(data);
-	if (canAffordProducer(data, data.producers.id)) {
+	let producerId;
+
+	if (event.target.tagName !== 'BUTTON') {
 		return;
-	} else {
-		window.alert('Not enough coffee!');
+	}
+	if (event.target.id) {
+		producerId = event.target.id.replace('buy_', '');
+
+		if (canAffordProducer(data, producerId)) {
+			attemptToBuyProducer(data, producerId);
+			renderProducers(data);
+			updateCoffeeView(data.coffee);
+			updateCPSView(data.totalCPS);
+		} else {
+			window.alert('Not enough coffee!');
+		}
 	}
 }
 
 function tick(data) {
-	// your code here
+	data.coffee += data.totalCPS;
+
+	updateCoffeeView(data.coffee);
+	renderProducers(data);
 }
 
 /*************************
