@@ -118,6 +118,7 @@ function updatePrice(oldPrice) {
 
 function attemptToBuyProducer(data, producerId) {
 	let producer = getProducerById(data, producerId);
+
 	if (canAffordProducer(data, producerId)) {
 		producer.qty += 1;
 		data.coffee -= producer.price;
@@ -151,9 +152,100 @@ function buyButtonClick(event, data) {
 
 function tick(data) {
 	data.coffee += data.totalCPS;
-
 	updateCoffeeView(data.coffee);
 	renderProducers(data);
+}
+// 													Extra Credit
+
+function save(data) {
+	renderUpgrades(data);
+	localStorage.setItem('game', JSON.stringify(data));
+}
+
+function makeUpgradeDiv(upgrade) {
+	const containerDiv = document.createElement('div');
+	containerDiv.className = 'upgrade';
+	const displayName = makeDisplayNameFromId(upgrade.id);
+	const currentCost = upgrade.price;
+	const html = `
+  <div class="upgrade-column">
+    <div class="upgrade-title">${displayName}</div>
+    <button type="button" id="buy_${upgrade.id}">Buy</button>
+  </div>
+  <div class="upgrade-column">
+    <div>Quantity: ${upgrade.qty}</div>
+     
+    <div>Cost: ${currentCost} coffee</div>
+  </div>
+  `;
+	containerDiv.innerHTML = html;
+	return containerDiv;
+}
+function getUnlockedUpgrade(data) {
+	return data.upgrades.filter((ele) => {
+		return ele.unlocked === true;
+	});
+}
+function renderUpgrades(data) {
+	const upgrade = document.querySelector('#upgrade_container');
+	let unlocks = unlockProducers(data.upgrades, data.coffee);
+
+	unlocks = getUnlockedUpgrade(data);
+	deleteAllChildNodes(upgrade);
+	unlocks.forEach((ele) => {
+		upgrade.append(makeUpgradeDiv(ele));
+	});
+}
+function getUpgradeById(data, producerId) {
+	let idObj = {};
+	data.upgrades.forEach((ele) => {
+		if (ele.id === producerId) {
+			idObj = ele;
+		}
+	});
+	return idObj;
+}
+function canAffordUpgrades(data, producerId) {
+	let upgrade = getUpgradeById(data, producerId);
+	if (upgrade.price <= data.coffee) {
+		return true;
+	}
+	return false;
+}
+
+function attemptToBuyUpgrades(data, producerId) {
+	let upgrade = getUpgradeById(data, producerId);
+	if (canAffordUpgrades(data, producerId)) {
+		let count = upgrade.qty;
+		upgrade.qty += 1;
+		data.coffee -= upgrade.price;
+		upgrade.price *= count;
+		data.totalCPS *= upgrade.cps;
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
+function upgradeButton(event, data) {
+	let upgradeId;
+
+	if (event.target.tagName !== 'BUTTON') {
+		return;
+	}
+	if (event.target.id) {
+		upgradeId = event.target.id.replace('buy_', '');
+
+		if (canAffordUpgrades(data, upgradeId)) {
+			attemptToBuyUpgrades(data, upgradeId);
+			renderUpgrades(data, upgradeId);
+			updateCoffeeView(data.coffee);
+			updateCPSView(data.totalCPS);
+		} else {
+			window.alert('Not enough coffee!');
+		}
+	}
 }
 
 /*************************
@@ -173,7 +265,8 @@ function tick(data) {
 if (typeof process === 'undefined') {
 	// Get starting data from the window object
 	// (This comes from data.js)
-	const data = window.data;
+	let data;
+	localStorage.setItem('backup', JSON.stringify(window.data));
 
 	// Add an event listener to the giant coffee emoji
 	const bigCoffee = document.getElementById('big_coffee');
@@ -185,9 +278,38 @@ if (typeof process === 'undefined') {
 	producerContainer.addEventListener('click', (event) => {
 		buyButtonClick(event, data);
 	});
+	// add event listener to document to load saved data // EXTRA CREDIT
+	window.addEventListener('load', () => {
+		if (localStorage.length > 1) {
+			data = JSON.parse(localStorage.getItem('game'));
+			renderProducers(data);
+			updateCoffeeView(data.coffee);
+			updateCPSView(data.totalCPS);
+		} else {
+			data = JSON.parse(localStorage.getItem('backup'));
+			renderProducers(data);
+			updateCoffeeView(data.coffee);
+			updateCPSView(data.totalCPS);
+		}
+	});
+	//reset event                  // EXTRA CREDIT
+
+	const reset = document.getElementById('reset');
+	reset.addEventListener('click', (event) => {
+		localStorage.removeItem('game');
+		location.reload();
+	});
+	//
+	// EXTRA CREDIT // EXTRA CREDIT
+	const upgradeContainer = document.getElementById('upgrade_container');
+	upgradeContainer.addEventListener('click', (event) => {
+		upgradeButton(event, data);
+	});
 
 	// Call the tick function passing in the data object once per second
 	setInterval(() => tick(data), 1000);
+	// Call the save function to save data to localstorage
+	setInterval(() => save(data), 1500);
 }
 // Meanwhile, if we aren't in a browser and are instead in node
 // we'll need to exports the code written here so we can import and
@@ -210,5 +332,14 @@ else if (process) {
 		attemptToBuyProducer,
 		buyButtonClick,
 		tick,
+		save,
+
+		renderUpgrades,
+		getUpgradeById,
+		makeUpgradeDiv,
+		canAffordUpgrades,
+		attemptToBuyUpgrades,
+		getUnlockedUpgrade,
+		upgradeButton,
 	};
 }

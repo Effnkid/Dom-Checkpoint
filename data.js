@@ -87,4 +87,28 @@ window.data = {
 			qty: 0,
 		},
 	],
+	// Extra upgrade
+	upgrades: [
+		{
+			id: 'double_current_CPS',
+			price: 5000,
+			unlocked: false,
+			cps: 2,
+			qty: 0,
+		},
+		{
+			id: 'triple_current_CPS',
+			price: 15000,
+			unlocked: false,
+			cps: 3,
+			qty: 0,
+		},
+		{
+			id: 'quad_current_CPS',
+			price: 150000,
+			unlocked: false,
+			cps: 4,
+			qty: 0,
+		},
+	],
 };
